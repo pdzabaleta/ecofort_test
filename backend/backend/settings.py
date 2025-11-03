@@ -135,3 +135,17 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
+
+#-------CAT API--------
+CAT_API_KEY = 'live_SDourr9TgbmNDDXgPwzIVo7T4GgnVp9j3560jpW3tl9zfvgUS0ZaMxnK8YhnKzQE'
+CAT_API_URL = 'https://api.thecatapi.com/v1' 
+
+#-------Se aplica autenticacion de github------
+AUTH_USER_MODEL = 'api.CustomUser'
+
+#------ Le indica a django que use JWT
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
