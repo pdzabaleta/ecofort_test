@@ -1,0 +1,19 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+RUN npm install -g pnpm
+
+
+COPY ./frontend/package.json ./frontend/pnpm-lock.yaml /app/
+
+
+RUN pnpm install
+
+COPY ./frontend /app
+
+
+EXPOSE 3000
+
+
+CMD ["pnpm", "start"]

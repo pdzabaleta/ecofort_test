@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # --- Servicio del Backend (Django) ---
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend # Sincroniza tu código local con el contenedor
+    depends_on:
+      - db # Le dice que espere al servicio 'db' antes de iniciar
+    environment:
+      - DB_HOST=db # Esta es la variable que usa el entrypoint.sh
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASS=postgres
+    restart: always
+
+  # --- Servicio del Frontend (React) ---
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app # Sincroniza tu código local con el contenedor
+      - /app/node_modules # Evita que node_modules local reemplace el del contenedor
+    depends_on:
+      - backend # Espera a que el backend esté listo
+    restart: always
+
+  # --- Servicio de la Base de Datos (PostgreSQL) ---
+  db:
+    image: postgres:14-alpine # Usamos una imagen oficial de Postgres
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Guarda los datos de la DB
+    ports:
+      - "5432:5432" # Expone el puerto de Postgres a tu máquina local
+    restart: always
+
+volumes:
+  postgres_data: # Define el volumen para persistir los datos
