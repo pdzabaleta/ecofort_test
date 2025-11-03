@@ -6,7 +6,7 @@ from .models import CustomUser, Favorite
 from .serializers import UserRegistrationSerializer, FavoriteSerializer
 from django.conf import settings
 
-# --- ViewSet for User Registration ---
+# --- Vista de registro ---
 class UserRegistrationViewSet(viewsets.ViewSet):
     """
     An endpoint for new users to register.
@@ -24,10 +24,10 @@ class UserRegistrationViewSet(viewsets.ViewSet):
                 status=status.HTTP_201_CREATED
             )
         
-        # If data is not valid, return the errors
+        # manejo de errores
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# --- ViewSet for Managing Favorites ---
+# --- Vista para los favoritos ---
 class FavoriteViewSet(viewsets.ModelViewSet):
     """
     An endpoint for users to view, add, or remove their favorites.
@@ -37,39 +37,32 @@ class FavoriteViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # This is still used for 'detail', 'update', 'delete' actions
-        return self.request.user.favorites.all()
+        return self.request.user.favorites.all() #<---- Todo en uno de django para metodos CRUD
 
     def get_serializer_context(self):
-        # This is used for the 'create' (POST) action
-        return {'request': self.request}
+        return {'request': self.request} #<----- El usuario es quien crea al metodo POST
     
-    # --- THIS IS THE NEW LOGIC ---
     def list(self, request, *args, **kwargs):
-        # 1. Get all favorites from our database for this user
-        db_favorites = self.request.user.favorites.all().order_by('-created_at')
+        db_favorites = self.request.user.favorites.all().order_by('-created_at') #<------Obtiene los favoritos del usuario segun su ID
         
-        # 2. Prepare for the response
-        synced_favorites_list = []
+        synced_favorites_list = [] #<---- Lista para almacenar la respuesta
         
-        # 3. Set up Cat API headers
+        
         headers = {
-            'x-api-key': settings.CAT_API_KEY
+            'x-api-key': settings.CAT_API_KEY #<-----Obtenemos la llave unica de la API 
         }
         
-        # 4. Loop through each favorite and sync it
+        
         for fav in db_favorites:
-            # The Cat API endpoint to get a breed's info is via image search
-            url = f"{settings.CAT_API_URL}/images/search?breed_ids={fav.cat_api_id}"
+            url = f"{settings.CAT_API_URL}/images/search?breed_ids={fav.cat_api_id}" #<-- Se itera sobre cada item para actualizar si es necesario
             
             try:
-                # 5. Make the external API call
-                response = requests.get(url, headers=headers, timeout=5) # 5 sec timeout
-                response.raise_for_status() # Check for 4xx/5xx errors
+                response = requests.get(url, headers=headers, timeout=5) 
+                response.raise_for_status() #<--- Error handling provenientes de la API, solo tiene 5 segundos 
                 
                 data = response.json()
                 
-                # 6. Check if the breed still exists
+                # Verifica que la raza todavia exista en la DB
                 if not data or not data[0].get('breeds'):
                     # --- Case 1: Breed not found (raza no disponible) ---
                     synced_favorites_list.append({
@@ -81,47 +74,45 @@ class FavoriteViewSet(viewsets.ModelViewSet):
                     })
          
                 else:
-                    # --- Case 2: Breed exists, update our data ---
+                    # --- Actualiza la raza en caso de cambio la informacion
                     breed_data = data[0]['breeds'][0]
                     image_url = data[0].get('url')
                     
-                    # Update our database with fresh info
+                    
                     fav.name = breed_data.get('name')
                     fav.image_url = image_url
-                    fav.save() # Save the updated info
+                    fav.save() #<----- Actualiza datos de la mascota
                     
                     synced_favorites_list.append({
                         'id': fav.id,
                         'cat_api_id': fav.cat_api_id,
                         'name': fav.name,
                         'image_url': fav.image_url,
-                        'status': 'actualizado' # 'updated'
+                        'status': 'actualizado'
                     })
             
             except requests.exceptions.ConnectionError:
-                # --- Case 3: Internet failure (datos sin actualizar) ---
+                # --- En caso de falla de internet
                 synced_favorites_list.append({
                     'id': fav.id,
                     'cat_api_id': fav.cat_api_id,
                     'name': fav.name,
                     'image_url': fav.image_url,
-                    'status': 'datos sin actualizar' # 'data not updated'
+                    'status': 'datos sin actualizar' 
                 })
             
             except requests.exceptions.RequestException:
-                # --- Case 4: Other API error (404, 500, timeout, etc.) ---
-                # We'll treat this as "data not updated" to be safe
+                # --- django Maneja los errores de la API ante eventualidad 404, 500
                 synced_favorites_list.append({
                     'id': fav.id,
                     'cat_api_id': fav.cat_api_id,
                     'name': fav.name,
                     'image_url': fav.image_url,
-                    'status': 'datos sin actualizar' # 'data not updated'
+                    'status': 'datos sin actualizar' 
                 })
         
-        # 7. Return the final synced list to the frontend
+        
         return Response(synced_favorites_list)
-
 
 
 # --- Cat API Proxy View ---
@@ -134,30 +125,25 @@ class CatBreedsProxyView(APIView):
     permission_classes = [permissions.AllowAny] # Cualquier usuario puede explorar
 
     def get(self, request, *args, **kwargs):
-        # 1. Get query parameters from the frontend request
         search_name = request.query_params.get('name', None)
-        search_origin = request.query_params.get('origin', None)
+        search_origin = request.query_params.get('origin', None) #<--Parametros del front
         
-        # 2. Set up the API call
         headers = {
             'x-api-key': settings.CAT_API_KEY
         }
         url = f"{settings.CAT_API_URL}/breeds"
 
         try:
-            # 3. Fetch data from The Cat API
+           
             response = requests.get(url, headers=headers)
-            response.raise_for_status() # Raises an error for bad responses (4xx, 5xx)
-            data = response.json()
+            response.raise_for_status()
+            data = response.json() #<---Trae los datos de la api en formato json
             
-            # 4. Filter the results on our server
             filtered_data = []
             for breed in data:
-                # We need an image, so we skip breeds without one
                 if not breed.get('image', {}).get('url'):
-                    continue 
+                    continue #<--- Dice que si no hay imagen en la api se salte la mascota
 
-                # Check filters
                 passes_name_filter = True
                 passes_origin_filter = True
                 
@@ -170,7 +156,7 @@ class CatBreedsProxyView(APIView):
                         passes_origin_filter = False
                 
                 if passes_name_filter and passes_origin_filter:
-                    # 5. Only return the data the frontend needs
+                    # Solo se retorna lo necesario para el front
                     filtered_data.append({
                         'id': breed.get('id'),
                         'name': breed.get('name'),

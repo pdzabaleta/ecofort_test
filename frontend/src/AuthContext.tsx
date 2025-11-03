@@ -8,7 +8,6 @@ import React, {
 } from 'react';
 import { AuthToken } from './types';
 
-// --- API CONFIGURATION ---
 const API_URL = 'http://127.0.0.1:8000/api';
 
 // --- AUTHENTICATION CONTEXT ---
@@ -18,11 +17,10 @@ interface IAuthContext {
   login: (username: string, pass: string) => Promise<string | null>;
   register: (user: string, email: string, pass: string) => Promise<string | null>;
   logout: () => void;
-  // This is our special fetch function that will add the auth token
-  authFetch: (url: string, options?: RequestInit) => Promise<Response>;
+  authFetch: (url: string, options?: RequestInit) => Promise<Response>;  //<--- Logica de autenticacion
 }
 
-// Create the context
+// Crea el context
 const AuthContext = createContext<IAuthContext | null>(null);
 
 // Create the provider component

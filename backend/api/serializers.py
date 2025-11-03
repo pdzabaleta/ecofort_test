@@ -28,15 +28,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Favorite
-        # Fields to include in the JSON response
-        fields = ['id', 'user', 'cat_api_id', 'name', 'image_url', 'created_at']
+        fields = ['id', 'user', 'cat_api_id', 'name', 'image_url', 'created_at'] #<---datos que estaran disponibles en la respuesa jason
         
     def create(self, validated_data):
-        # This is CRITICAL.
-        # When creating a favorite, we must manually assign
-        # the user who is making the request.
-        # The view (which we'll make next) will pass the 'request'
-        # object into the serializer's 'context'.
         validated_data['user'] = self.context['request'].user
         
         return super().create(validated_data)
