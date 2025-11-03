@@ -345,7 +345,7 @@ const Dashboard: React.FC = () => {
     <div className="flex flex-col w-full h-full">
       {/* Header */}
       <header className="flex items-center justify-between p-4 bg-gray-900 shadow-lg">
-        <h1 className="text-2xl font-bold text-white">Cat Explorer</h1>
+        <h1 className="text-2xl font-bold text-white">🐱 Cat Explorer</h1>
         <button
           onClick={logout}
           className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"

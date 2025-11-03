@@ -227,6 +227,7 @@ export const CatDetailModal: React.FC<{
           src={breed.image_url}
           alt={breed.name}
           className="w-full h-64 mt-4 object-cover rounded-md"
+          loading="lazy"
         />
         <div className="mt-4 space-y-3 text-gray-300">
           <p><strong className="text-white">Origin:</strong> {breed.origin}</p>
